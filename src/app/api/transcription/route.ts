@@ -21,9 +21,11 @@ export async function GET(req: Request) {
       .streamingRecognize({
         config: {
           encoding: 'LINEAR16',
-          sampleRateHertz: 16000,
+          sampleRateHertz: 48000,
           languageCode: 'es-ES',
           enableAutomaticPunctuation: true,
+          model: 'default',
+          useEnhanced: true,
         },
         interimResults: true,
       })
@@ -40,10 +42,22 @@ export async function GET(req: Request) {
       .on('error', (error) => {
         console.error('Error in transcription:', error);
         socket.emit('error', error.message);
+      })
+      .on('end', () => {
+        console.log('Transcription stream ended');
       });
 
-    socket.on('audio', (audioData: Buffer) => {
-      recognizeStream.write(audioData);
+    socket.on('audio', (audioData: Float32Array) => {
+      try {
+        // Convert Float32Array to Int16Array for Google Speech API
+        const int16Data = new Int16Array(audioData.length);
+        for (let i = 0; i < audioData.length; i++) {
+          int16Data[i] = Math.max(-32768, Math.min(32767, Math.round(audioData[i] * 32767)));
+        }
+        recognizeStream.write(int16Data.buffer);
+      } catch (error) {
+        console.error('Error processing audio data:', error);
+      }
     });
 
     socket.on('disconnect', () => {

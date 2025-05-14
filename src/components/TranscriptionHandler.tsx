@@ -12,23 +12,28 @@ export const TranscriptionHandler = ({ track, userId, onTranscription }: Transcr
     const socketRef = useRef<Socket | null>(null);
     const [isInitialized, setIsInitialized] = useState(false);
     const audioContextRef = useRef<AudioContext | null>(null);
+    const processorRef = useRef<ScriptProcessorNode | null>(null);
 
     const initializeAudio = () => {
         if (!isInitialized && track.mediaStream) {
-            audioContextRef.current = new AudioContext();
-            const source = audioContextRef.current.createMediaStreamSource(track.mediaStream);
-            const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
+            try {
+                audioContextRef.current = new AudioContext();
+                const source = audioContextRef.current.createMediaStreamSource(track.mediaStream);
+                processorRef.current = audioContextRef.current.createScriptProcessor(4096, 1, 1);
 
-            processor.onaudioprocess = (e) => {
-                const audioData = e.inputBuffer.getChannelData(0);
-                if (socketRef.current?.connected) {
-                    socketRef.current.emit('audio', audioData);
-                }
-            };
+                processorRef.current.onaudioprocess = (e) => {
+                    const audioData = e.inputBuffer.getChannelData(0);
+                    if (socketRef.current?.connected) {
+                        socketRef.current.emit('audio', audioData);
+                    }
+                };
 
-            source.connect(processor);
-            processor.connect(audioContextRef.current.destination);
-            setIsInitialized(true);
+                source.connect(processorRef.current);
+                processorRef.current.connect(audioContextRef.current.destination);
+                setIsInitialized(true);
+            } catch (error) {
+                console.error('Error initializing audio:', error);
+            }
         }
     };
 
@@ -44,6 +49,9 @@ export const TranscriptionHandler = ({ track, userId, onTranscription }: Transcr
         });
 
         return () => {
+            if (processorRef.current) {
+                processorRef.current.disconnect();
+            }
             if (audioContextRef.current) {
                 audioContextRef.current.close();
             }
