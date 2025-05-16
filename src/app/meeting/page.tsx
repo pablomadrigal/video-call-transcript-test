@@ -9,15 +9,17 @@ export default function MeetingPage() {
     // Handler for creating a new meeting
     const handleNewMeeting = () => {
         const newRoom = `room-${Math.random().toString(36).substring(2, 8)}`;
-        router.push(`/room/${newRoom}`);
+        router.push(`/meeting/${newRoom}`);
     };
 
     // Handler for joining a meeting by code
     const handleJoin = () => {
         if (roomCode.trim()) {
-            router.push(`/room/${roomCode.trim()}`);
+            router.push(`/meeting/${roomCode.trim()}`);
         }
     };
+
+
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-white">
@@ -28,7 +30,6 @@ export default function MeetingPage() {
                     className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-full flex items-center gap-2 shadow"
                     onClick={handleNewMeeting}
                 >
-                    <span className="material-icons">add</span>
                     New Meeting
                 </button>
                 <input
