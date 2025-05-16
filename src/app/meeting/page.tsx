@@ -8,7 +8,7 @@ export default function MeetingPage() {
 
     // Handler for creating a new meeting
     const handleNewMeeting = () => {
-        const newRoom = `room-${Math.random().toString(36).substring(2, 8)}`;
+        const newRoom = `${Math.random().toString(36).substring(2, 8)}`;
         router.push(`/meeting/${newRoom}`);
     };
 

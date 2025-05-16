@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { GridLayout, ParticipantTile, RoomAudioRenderer, useRoomContext, useTracks, ControlBar, PreJoin, ParticipantName } from '@livekit/components-react';
+import { useRoomContext, useTracks, ControlBar, PreJoin, ParticipantName, formatChatMessageLinks, VideoConference } from '@livekit/components-react';
 import { RoomEvent, Track, Room, isLocalTrack } from 'livekit-client';
 import { RoomContext } from '@livekit/components-react';
 
@@ -14,20 +14,13 @@ function RoomContent({ disconnect }: { disconnect: () => any }) {
         setIdentity(randomIdentity);
     }, []);
 
-    const videoTracks = useTracks(
+    const tracks = useTracks(
         [
             { source: Track.Source.Camera, withPlaceholder: true },
             { source: Track.Source.ScreenShare, withPlaceholder: false },
         ],
         { onlySubscribed: false },
     );
-
-    const audioTracks = useTracks([
-        Track.Source.Microphone,
-        Track.Source.ScreenShareAudio,
-        Track.Source.Unknown,
-      ]).filter((ref) => !isLocalTrack(ref.participant) && ref.publication.kind === Track.Kind.Audio);
-    
 
     useEffect(() => {
         const handleDisconnected = () => {
@@ -42,19 +35,9 @@ function RoomContent({ disconnect }: { disconnect: () => any }) {
     return (
         <div className="relative flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-100 via-blue-50 to-blue-200">
             <div className="w-full max-w-5xl flex flex-col items-center justify-center gap-4 p-4">
-                <div className="w-full rounded-2xl shadow-lg bg-white/80 backdrop-blur-md p-2 flex flex-col items-center">
-                    <GridLayout
-                        tracks={videoTracks}
-                    >
-                        <ParticipantTile>
-                            <ParticipantName />
-                        </ParticipantTile>
-                    </GridLayout>
-                    <ControlBar />
-                    <div className="w-full flex justify-center mt-2">
-                        <RoomAudioRenderer />
-                    </div>
-                </div>
+                <VideoConference
+                    chatMessageFormatter={formatChatMessageLinks}
+                />
             </div>
         </div>
     );
@@ -69,9 +52,14 @@ function RoomWrapper({ roomName, room, displayName, disconnect }: { roomName: st
             .then(res => res.json())
             .then(async data => {
                 setToken(data.token);
-                await room.connect(process.env.NEXT_PUBLIC_LIVEKIT_URL!, data.token);
-                // Enable audio and video tracks
-                await room.localParticipant.enableCameraAndMicrophone();
+                try {
+                    await room.connect(process.env.NEXT_PUBLIC_LIVEKIT_URL!, data.token);
+                    // Enable camera and microphone with error handling
+                    await room.localParticipant.enableCameraAndMicrophone();
+                    console.log('Camera and microphone enabled');
+                } catch (error) {
+                    console.error('Error connecting to room:', error);
+                }
             });
 
         return () => {
